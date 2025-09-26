@@ -4,24 +4,29 @@ from socket import *
 import pickle
 import os
 
+
 # Constants
 GET_NUM_ARGS = 2
+
 
 # Commands
 GET = "get"
 DIR = "dir"
 END = "end"
 
+
 # Errors
 INVALID_NUM_ARGS = "Invalid number of arguments."
 FILE_ALREADY_EXISTS = "File already exists locally."
-FILE_NOT_FOUND_SERVER = "File wasn't found in server."
+FILE_NOT_FOUND_SERVER = "File not found."
 FILE_NOT_FOUND = "FILE NOT FOUND."
+
 
 # Arguments
 server_addr = sys.argv[1]
 server_port = sys.argv[2]
 bufferSize = 512
+
 
 # opcodes
 RQQ_OPCODE = 1
@@ -29,18 +34,25 @@ DAT_OPCODE = 2
 ACK_OPCODE = 3
 ERR_OPCODE = 4
 
+
 #Packages
 
 # classe principal
 class Packet:
     def __init__(self, opcode):
         self.opcode = opcode
+    # métodos
+    def getOpcode(self):
+        return self.opcode
 
 # extensões da classe Packet
 class Rrq(Packet):
     def __init__(self, filename):
         super().__init__(RQQ_OPCODE)
         self.filename = filename
+    # métodos
+    def getFileName(self):
+        self.filename
 
 class Dat(Packet):
     def __init__(self, block, size, data):
@@ -49,6 +61,8 @@ class Dat(Packet):
         self.size = size
         self.data = data
     # métodos
+    def getBlock(self):
+        return self.block
     def getSize(self):
         return self.size
     def getData(self):
@@ -58,11 +72,20 @@ class Ack(Packet):
     def __init__(self, block):
         super().__init__(ACK_OPCODE)
         self.block = block
+    # métdos
+    def getBlock(self):
+        return self.block
 
 class Err(Packet):
     def __init__(self, errstring):
         super().__init__(ERR_OPCODE)
         self.errstring = errstring
+    def getErrString(self):
+        return self.errstring
+
+
+
+
 # main
 def main():
     print("starting program...")
@@ -105,8 +128,8 @@ def main():
                 # remaining packages DAT sent by server analysis
                 # writting local file
                 with open(local_filename, "wb") as f:
-                    while packet.size() and isinstance(packet, Dat):
-                        f.write(packet.getData)
+                    while packet.size() and packet.get:
+                        f.write(packet.getData())
                         packet = pickle.load(TCPClientSocket.recv(bufferSize))
 
             else:

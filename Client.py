@@ -2,6 +2,7 @@
 import sys
 from socket import *
 import pickle
+import os
 
 # Constants
 GET_NUM_ARGS = 2
@@ -87,7 +88,7 @@ def main():
 
         except FileNotFoundError:
             # RRQ to server
-            file_request = pickle.dump(Rrq(remote_filename))
+            file_request = pickle.dumps(Rrq(remote_filename))
             TCPClientSocket.send(file_request)
 
             #CHECK: File doesn't exist on server

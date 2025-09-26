@@ -36,12 +36,12 @@ class Packet:
 
 class RRQ(Packet):
     def __init__(self, filename):
-        super.__init__(RQQ_OPCODE)
+        super().__init__(RQQ_OPCODE)
         self.filename = filename
 
 class DAT(Packet):
     def __init__(self, block, size, data):
-        super.__init__(DAT_OPCODE)
+        super().__init__(DAT_OPCODE)
         self.block = block
         self.size = size
         self.data = data
@@ -109,4 +109,3 @@ def main():
 
 
 main()
-

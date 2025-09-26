@@ -2,11 +2,10 @@
 import sys
 from socket import *
 import pickle
-import pathlib
 
 # Constants
 GET_NUM_ARGS = 2
-
+# opcodes
 RQQ_OPCODE = 1
 DAT_OPCODE = 2
 ACK_OPCODE = 3
@@ -24,6 +23,7 @@ FILE_ALREADY_EXISTS = "File already exists locally."
 FILE_NOT_FOUND_SERVER = "File wasn't found in server."
 FILE_NOT_FOUND = "FILE NOT FOUND."
 
+# Arguments
 server_addr = sys.argv[1]
 server_port = sys.argv[2]
 bufferSize = 512
@@ -34,30 +34,33 @@ class Packet:
     def __init__(self, opcode):
         self.opcode = opcode
 
-class RRQ(Packet):
+class Rrq(Packet):
     def __init__(self, filename):
         super().__init__(RQQ_OPCODE)
         self.filename = filename
 
-class DAT(Packet):
+class Dat(Packet):
     def __init__(self, block, size, data):
         super().__init__(DAT_OPCODE)
         self.block = block
         self.size = size
         self.data = data
+    def getSize(self):
+        return self.size
+    def getData(self):
+        return self.data
 
-class ACK(Packet):
+class Ack(Packet):
     def __init__(self, block):
         super().__init__(ACK_OPCODE)
         self.block = block
 
-class ERR(Packet):
+class Err(Packet):
     def __init__(self, errstring):
         super().__init__(ERR_OPCODE)
         self.errstring = errstring
 
-#end package classes/definition
-
+# main
 def main():
 
     TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
@@ -74,30 +77,30 @@ def main():
         local_filename = sys.argv[2]
         num_arguments = len(sys.argv) - 1
 
-        #CHECK: Number of arguments
+        #CHECK: num of arguments
         if num_arguments != GET_NUM_ARGS: 
             print(INVALID_NUM_ARGS)
-        #CHECK: File already exists on client
+
+        #CHECK: file already exists on client
         try:
             open(local_filename, "rb")
 
         except FileNotFoundError:
-            # file request to server
-            file_request = pickle.dump(RRQ(remote_filename))
+            # RRQ to server
+            file_request = pickle.dump(Rrq(remote_filename))
             TCPClientSocket.send(file_request)
 
-            # data sent by server analysis/ writting local file
-            with open(local_filename, "wb") as f:
-                while True:
-                    data = TCPClientSocket.recv(bufferSize)
-                    if isinstance(data, DAT): print("error")
-                    if not data: break
-                    f.write(data)
-
-            #CHECK: File doesn't exist on server 
-            if (TCPClientSocket.recv(bufferSize)):
+            #CHECK: File doesn't exist on server
+            # data = first package DAT
+            if (packet := pickle.load(TCPClientSocket.recv(bufferSize))):
                 print(FILE_NOT_FOUND_SERVER)
-        
+            
+            # remaining packages DAT sent by server analysis
+            # writting local file
+            with open(local_filename, "wb") as f:
+                while packet.size() and isinstance(packet, Dat):
+                    f.write(packet.getData)
+                    packet = pickle.load(TCPClientSocket.recv(bufferSize))
         else:
             print(FILE_ALREADY_EXISTS)
 

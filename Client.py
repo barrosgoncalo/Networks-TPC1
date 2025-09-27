@@ -94,8 +94,11 @@ def main():
     
     is_running = True
     while is_running:
+        try:
 
-        try:            
+            print(".", end=' ',flush=True)
+            time.sleep(1)
+
             TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
             TCPClientSocket.connect((server_addr, server_port))
             

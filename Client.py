@@ -20,8 +20,9 @@ FILE_TRANSFER_COMPLETED = "File transfer completed"
 
 
 # Arguments
-server_addr = sys.argv[1]
-server_port = sys.argv[2]
+#change for sys.argv[1] && sys.argv[2]
+server_addr = "172.17.0.2"
+server_port = 20000
 bufferSize = 512
 
 
@@ -89,11 +90,8 @@ def main():
     
     is_running = True
     while is_running:
-        try:
-            print(".", end=' ',flush=True)
-            time.sleep(1)
-            TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
-            TCPClientSocket.connect((server_addr, server_port))
+        TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
+        TCPClientSocket.connect((server_addr, server_port))
 
             comm = input()
 

@@ -3,23 +3,20 @@ import sys
 from socket import *
 import pickle
 import os
+import time
 
 
 # Constants
 GET_NUM_ARGS = 2
 
 
-# Commands
-GET = "get"
-DIR = "dir"
-END = "end"
-
-
 # Errors
-INVALID_NUM_ARGS = "Invalid number of arguments."
-FILE_ALREADY_EXISTS = "File already exists locally."
-FILE_NOT_FOUND_SERVER = "File not found."
-FILE_NOT_FOUND = "FILE NOT FOUND."
+INVALID_NUM_ARGS = "Invalid number of arguments"
+FILE_ALREADY_EXISTS = "File already exists locally"
+FILE_NOT_FOUND = "File not found"
+
+# prints
+FILE_TRANSFER_COMPLETED = "File transfer completed"
 
 
 # Arguments
@@ -88,58 +85,71 @@ class Err(Packet):
 
 # main
 def main():
-    print("starting program...")
+    print("starting...")
     
-
     is_running = True
     while is_running:
-        TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
-        TCPClientSocket.connect((server_addr, server_port))
+        try:
+            print(".", end=' ',flush=True)
+            time.sleep(1)
+            TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
+            TCPClientSocket.connect((server_addr, server_port))
 
-        comm = input()
+            comm = input()
 
-        if comm == DIR:
-            pass
+            match comm:
+                case "dir":
+                    pass
 
-        elif comm == GET:
-            # arguments
-            remote_filename = sys.argv[1]
-            local_filename = sys.argv[2]
-            num_arguments = len(sys.argv) - 1
+                case "git":
+                    # arguments
+                    remote_filename = sys.argv[1]
+                    local_filename = sys.argv[2]
+                    num_arguments = len(sys.argv) - 1
 
-            #CHECK: num of arguments
-            if num_arguments != GET_NUM_ARGS: 
-                print(INVALID_NUM_ARGS)
+                    #CHECK: num of arguments
+                    if num_arguments != GET_NUM_ARGS: 
+                        print(INVALID_NUM_ARGS)
 
-            #CHECK: file already exists on client
-            try:
-                open(local_filename, "rb")
+                    #CHECK: file already exists on client
+                    try:
+                        open(local_filename, "rb")
 
-            except FileNotFoundError:
-                # RRQ to server
-                packet_rrq = pickle.dumps(Rrq(remote_filename))
-                TCPClientSocket.send(packet_rrq)
+                    except FileNotFoundError:
+                        # request to server
+                        packet_rrq = pickle.dumps(Rrq(remote_filename))
+                        TCPClientSocket.send(packet_rrq)
 
-                #CHECK: File doesn't exist on server
-                # data = first package DAT
-                if (packet := pickle.load(TCPClientSocket.recv(bufferSize))):
-                    print(FILE_NOT_FOUND_SERVER)
-                
-                # remaining packages DAT sent by server analysis
-                # writting local file
-                with open(local_filename, "wb") as f:
-                    while packet.size() and packet.get:
-                        f.write(packet.getData())
-                        packet = pickle.load(TCPClientSocket.recv(bufferSize))
+                        # data = first package DAT
+                        packet_bytes = TCPClientSocket.recv(bufferSize)
+                        
+                        # remaining packages DAT sent by server analysis
+                        # writting local file
+                        with open(local_filename, "wb") as f:
+                            packet = pickle.load(packet_bytes)
+                            error = False
+                            while packet.size() and not error:
+                                if packet.getOpcode() == DAT_OPCODE:
+                                    f.write(packet.getData())
+                                    packet = pickle.load(TCPClientSocket.recv(bufferSize))
+                                else: # File doesn't exist on server
+                                    os.remove(local_filename)
+                                    print(FILE_NOT_FOUND)
+                                    error = True
 
-            else:
-                print(FILE_ALREADY_EXISTS)
+                    else: print(FILE_ALREADY_EXISTS)
 
-        elif comm == END:
-            pass #NOT DONE
+                case "end":
+                    pass #NOT DONE
 
-        else:
-            print("Unknow command.")
+                case _:
+                    print("Unknow command.")
+
+                    
+        except KeyboardInterrupt:
+            print("Exiting!")
+            break
+        print("Ending ")
 
 
 main()

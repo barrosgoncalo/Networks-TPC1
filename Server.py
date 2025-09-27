@@ -1,8 +1,19 @@
+import threading
+import socket
+import pickle
+import os
+import sys
+
+
 # opcodes
 RQQ_OPCODE = 1
 DAT_OPCODE = 2
 ACK_OPCODE = 3
 ERR_OPCODE = 4
+
+port = 20000
+addrServer = "172.17.0.2"
+buffer = 512
 
 
 #Packages
@@ -52,19 +63,24 @@ class Err(Packet):
         self.errstring = errstring
     def getErrString(self):
         return self.errstring
-    
-import threading
-import socket
-import pickle
-import os
 
-def handle_client():
 
+def handle_client(conn: socket.socket, addrClient):
+    while True:
+        msg = f"Welcome to {addrServer} file server"
+
+        #send the gretting msg
+        data_packet = Dat(1, buffer, msg.encode())
+        req = pickle.dumps(data_packet)
+        conn.sendto(req, addrClient)
+
+        #wait until for te ACK
+        conn.recvfrom(buffer)
+
+        print("rcv")
+        
 
 def main():
-    port = 20000
-    buffer = 1024
-    addrServer = "172.17.0.2"
 
     try:    
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -75,8 +91,9 @@ def main():
         print("Unable to start server")
 
     while(True):
+        server.listen()
         conn, addrClient = server.accept()
-        tid = threading.Thread(target=handle_client, args=(conn, ))
+        tid = threading.Thread(target=handle_client, args=(conn, addrClient))
         tid.start()
 
 

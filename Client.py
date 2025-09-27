@@ -23,8 +23,9 @@ FILE_NOT_FOUND = "FILE NOT FOUND."
 
 
 # Arguments
-server_addr = sys.argv[1]
-server_port = sys.argv[2]
+#change for sys.argv[1] && sys.argv[2]
+server_addr = "172.17.0.2"
+server_port = 20000
 bufferSize = 512
 
 
@@ -95,6 +96,7 @@ def main():
     while is_running:
         TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
         TCPClientSocket.connect((server_addr, server_port))
+
 
         comm = input()
 

@@ -7,13 +7,13 @@ import sys
 
 # opcodes
 RQQ_OPCODE = 1
-DAT_OPCODE = 2
-ACK_OPCODE = 3
-ERR_OPCODE = 4
+DAT_OPCODE = 3
+ACK_OPCODE = 4
+ERR_OPCODE = 5
 
 port = 20000
 addrServer = "172.17.0.2"
-buffer = 512
+bufferSize = 512
 
 
 #Packages
@@ -70,12 +70,12 @@ def handle_client(conn: socket.socket, addrClient):
         msg = f"Welcome to {addrServer} file server"
 
         #send the gretting msg
-        data_packet = Dat(1, buffer, msg.encode())
+        data_packet = Dat(1, bufferSize, msg)
         req = pickle.dumps(data_packet)
         conn.sendto(req, addrClient)
 
         #wait until for te ACK
-        conn.recvfrom(buffer)
+        conn.recvfrom(bufferSize)
 
         print("rcv")
         

@@ -8,6 +8,7 @@ import time
 
 # Constants
 GET_NUM_ARGS = 2
+FIRST_BLOCK_CODE = 1
 
 
 # Errors
@@ -20,7 +21,6 @@ FILE_TRANSFER_COMPLETED = "File transfer completed"
 
 
 # Arguments
-#change for sys.argv[1] && sys.argv[2]
 server_addr = "172.17.0.2"
 server_port = 20000
 bufferSize = 512
@@ -28,9 +28,9 @@ bufferSize = 512
 
 # opcodes
 RQQ_OPCODE = 1
-DAT_OPCODE = 2
-ACK_OPCODE = 3
-ERR_OPCODE = 4
+DAT_OPCODE = 3
+ACK_OPCODE = 4
+ERR_OPCODE = 5
 
 
 #Packages
@@ -43,14 +43,16 @@ class Packet:
     def getOpcode(self):
         return self.opcode
 
+
 # extensões da classe Packet
+
 class Rrq(Packet):
     def __init__(self, filename):
         super().__init__(RQQ_OPCODE)
         self.filename = filename
     # métodos
     def getFileName(self):
-        self.filename
+        return self.filename
 
 class Dat(Packet):
     def __init__(self, block, size, data):
@@ -78,6 +80,7 @@ class Err(Packet):
     def __init__(self, errstring):
         super().__init__(ERR_OPCODE)
         self.errstring = errstring
+    # métodos
     def getErrString(self):
         return self.errstring
 
@@ -89,24 +92,37 @@ def main():
     
     print("starting...")
     
-    while True:
-        try:
+    is_running = True
+    while is_running:
+
+        try:            
             TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
             TCPClientSocket.connect((server_addr, server_port))
+            
+            # Server greeting message
+            packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+            if(packet.getOpcode() == DAT_OPCODE):
+                msg = packet.getData()
+                print(msg)
+                Ack_packet = Ack(FIRST_BLOCK_CODE)
+                encoded_packet = pickle.dumps(Ack_packet)
+                TCPClientSocket.send(encoded_packet)
 
-            comm = input()
+            # arguments
+            user_input = input().split(" ")
+            cmd = user_input[0]
 
-            match comm:
+            match cmd:
                 case "dir":
                     pass
 
-                case "git":
-                    # arguments
-                    remote_filename = sys.argv[1]
-                    local_filename = sys.argv[2]
-                    num_arguments = len(sys.argv) - 1
+                case "get":
+
+                    remote_filename = cmd[1]
+                    local_filename = cmd[2]
 
                     #CHECK: num of arguments
+                    num_arguments = len(sys.argv) - 1
                     if num_arguments != GET_NUM_ARGS: 
                         print(INVALID_NUM_ARGS)
 
@@ -125,9 +141,9 @@ def main():
                         # remaining packages DAT sent by server analysis
                         # writting local file
                         with open(local_filename, "wb") as f:
-                            packet = pickle.load(packet_bytes)
+                            packet = pickle.loads(packet_bytes)
                             error = False
-                            while packet.size() and not error:
+                            while packet.getSize() and not error:
                                 if packet.getOpcode() == DAT_OPCODE:
                                     f.write(packet.getData())
                                     packet = pickle.load(TCPClientSocket.recv(bufferSize))
@@ -145,9 +161,10 @@ def main():
                     print("Unknow command.")
 
         except KeyboardInterrupt:
+            print("")
             print("Exiting!")
-            break
-        print("Ending ")
+            is_running = False
+    print("Ending ")
 
 
 main()

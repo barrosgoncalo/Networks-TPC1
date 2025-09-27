@@ -86,12 +86,13 @@ class Err(Packet):
 
 # main
 def main():
+    
     print("starting...")
     
-    is_running = True
-    while is_running:
-        TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
-        TCPClientSocket.connect((server_addr, server_port))
+    while True:
+        try:
+            TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
+            TCPClientSocket.connect((server_addr, server_port))
 
             comm = input()
 
@@ -143,7 +144,6 @@ def main():
                 case _:
                     print("Unknow command.")
 
-                    
         except KeyboardInterrupt:
             print("Exiting!")
             break

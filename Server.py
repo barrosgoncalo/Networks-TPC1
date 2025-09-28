@@ -94,7 +94,7 @@ def handle_client(conn: socket.socket, addrClient):
                         #ack block
                         conn.recvfrom(bufferSize)
 
-                case :
+                case _ : pass
         
 
 def main():
@@ -125,7 +125,7 @@ def main():
                     while not end_file:
                         packet = conn.recv(bufferSize)
                         
-                case _:
+                case _: pass
                 
 
 

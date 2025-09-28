@@ -77,7 +77,24 @@ def handle_client(conn: socket.socket, addrClient):
         #wait until for te ACK
         conn.recvfrom(bufferSize)
 
-        print("rcv")
+        enc_data = conn.recv(bufferSize)
+        packet = pickle.loads(enc_data)
+        end_file = False
+
+        if(packet.getOpcode() == RQQ_OPCODE):
+            match packet.getFileName():
+                case "":
+                    dir_path = "."
+                    dir_list = os.listdir(dir_path)
+
+                    for file in dir_list:
+                        data_packet = Dat(1, bufferSize, file)
+                        req = pickle.dumps(data_packet)
+                        conn.send(req)
+                        #ack block
+                        conn.recvfrom(bufferSize)
+
+                case :
         
 
 def main():
@@ -99,8 +116,9 @@ def main():
         # Read requests
         enc_data = conn.recv(bufferSize)
         packet = pickle.loads(enc_data)
-
-        if(packet.getOpcode() == DAT_OPCODE)
+        end_file = False
+                    
+        if(packet.getOpcode() == DAT_OPCODE):
             match packet.getFileName():
                 case "":
                     end_file = False

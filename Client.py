@@ -89,14 +89,19 @@ class Err(Packet):
 class FileTransferError(Exception):
     pass
 
+class FileNotFound(Exception):
+    pass
 
 # methods
 
 def write_file(socket, packet, file):
     while packet.getSize() and not error:
-        if packet.getOpcode() == DAT_OPCODE:
+        opCode = packet.getOpcode();
+        if opCode == DAT_OPCODE:
             file.write(packet.getData())
             packet = pickle.load(socket.recv(bufferSize))
+        elif opCode == ERR_OPCODE:
+            raise 
         else: # File doesn't exist on server
             raise FileTransferError()
 

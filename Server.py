@@ -100,12 +100,13 @@ def main():
         enc_data = conn.recv(bufferSize)
         packet = pickle.loads(enc_data)
 
-        if(packet.getOpcode() == DAT_OPCODE):
+        if(packet.getOpcode() == DAT_OPCODE)
             match packet.getFileName():
                 case "":
                     end_file = False
                     while not end_file:
                         packet = conn.recv(bufferSize)
+                        
                 case _:
                 
 

@@ -94,17 +94,18 @@ class FileNotFound(Exception):
 
 # methods
 
-def write_file(socket, packet, file):
-    while packet.getSize() and not error:
-        opCode = packet.getOpcode();
-        if opCode == DAT_OPCODE:
-            file.write(packet.getData())
-            packet = pickle.load(socket.recv(bufferSize))
-        elif opCode == ERR_OPCODE:
-            raise 
-        else: # File doesn't exist on server
-            raise FileTransferError()
-
+def write_file(packet, file):
+    opCode = packet.getOpcode();
+    if opCode == DAT_OPCODE:
+        file.write(packet.getData())
+    elif opCode == ERR_OPCODE:
+        print("pass")
+    else: # File doesn't exist on server
+        raise FileTransferError()
+        
+        
+def resetBlock(block):
+    block = 0
 
 
 # main
@@ -136,25 +137,44 @@ def main():
             user_input = input().split(" ")
             cmd = user_input[0].upper()
 
+            block_idx = 1
+
             match cmd:
                 case "DIR":
+                    #block index reset
+                    resetBlock(block_idx)
+
                     Rrq_packet = Rrq("")
                     encoded_packet = pickle.dumps(Rrq_packet)
                     TCPClientSocket.send(encoded_packet)
                     
                     end_file = False
-                    file = open("ref", "wb")
-                    while not end_file:
+                    file = open("ref.txt", "w")
+                    
+                    while True:
                         packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+
+                        if (packet.getSize() == 0): break
+
                         try:
-                            write_file(TCPClientSocket, packet, file)
+                            write_file(packet, file)
+                            file.write("\n")
+                            file.flush()
+                            ack = Ack(block_idx)
+                            ack_packet = pickle.dumps(ack)
+                            TCPClientSocket.send(ack_packet)
+                            block_idx += 1
                         except:
                             pass #exception to make
-
-                    print(file.read())
+                    file.close()
+                    with open("ref.txt", "r") as file:
+                        content = file.read()
+                        print(content)
                 # Should the file be written and rewritten to be ASCII in server or in client?? 
 
                 case "GET":
+                    #block index reset
+                    resetBlock(block_idx)
 
                     remote_filename = user_input[1]
                     local_filename = user_input[2]

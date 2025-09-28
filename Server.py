@@ -72,7 +72,7 @@ def handle_client(conn: socket.socket, addrClient):
         #send the gretting msg
         data_packet = Dat(1, bufferSize, msg)
         req = pickle.dumps(data_packet)
-        conn.sendto(req, addrClient)
+        conn.send(req)
 
         #wait until for te ACK
         conn.recvfrom(bufferSize)
@@ -82,19 +82,24 @@ def handle_client(conn: socket.socket, addrClient):
         end_file = False
 
         if(packet.getOpcode() == RQQ_OPCODE):
+            idx = 1
             match packet.getFileName():
-                case "":
+                case None:
                     dir_path = "."
                     dir_list = os.listdir(dir_path)
+                    print(dir_list)
 
-                    for file in dir_list:
-                        data_packet = Dat(1, bufferSize, file)
+                    for file_name in dir_list:
+                        idx += 1
+                        data_packet = Dat(idx, bufferSize, file_name)
                         req = pickle.dumps(data_packet)
                         conn.send(req)
                         #ack block
-                        conn.recvfrom(bufferSize)
+                        pickle.loads(conn.recv(bufferSize))
+                    #Send "sentinel" package
+                    conn.send(pickle.dumps(Dat(1, 0, "")))
 
-                case :
+                case _: pass
         
 
 def main():
@@ -112,20 +117,6 @@ def main():
         conn, addrClient = server.accept()
         tid = threading.Thread(target=handle_client, args=(conn, addrClient))
         tid.start()
-
-        # Read requests
-        enc_data = conn.recv(bufferSize)
-        packet = pickle.loads(enc_data)
-        end_file = False
-                    
-        if(packet.getOpcode() == DAT_OPCODE):
-            match packet.getFileName():
-                case "":
-                    end_file = False
-                    while not end_file:
-                        packet = conn.recv(bufferSize)
-                        
-                case _:
                 
 
 

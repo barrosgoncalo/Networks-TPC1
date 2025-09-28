@@ -100,14 +100,37 @@ def main():
         enc_data = conn.recv(bufferSize)
         packet = pickle.loads(enc_data)
 
-        if(packet.getOpcode() == DAT_OPCODE)
+        if(packet.getOpcode() == RQQ_OPCODE):
+            match packet.getFileName():
+                case "":
+                    dir_path = "."
+                    dir_list = os.listdir(dir_path)
+
+                    print("Files and directories in ", dir_path, ":")
+
+                    print("ALL")
+                    for x in dir_list:
+                        print(x)
+
+                    res=[]
+
+                    for path in os.listdir(dir_path):
+                        if os.path.isfile(os.path.join(dir_path, path)):
+                            res.append(path)
+
+                    print("FILES")
+                    for f in res:
+                        print(f)
+            
+
+        if(packet.getOpcode() == DAT_OPCODE):
             match packet.getFileName():
                 case "":
                     end_file = False
                     while not end_file:
                         packet = conn.recv(bufferSize)
                         
-                case _:
+                case _: print()
                 
 
 

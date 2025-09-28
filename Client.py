@@ -17,7 +17,7 @@ FILE_ALREADY_EXISTS = "File already exists locally"
 FILE_NOT_FOUND = "File not found"
 
 # prints
-FILE_TRANSFER_COMPLETED = "File transfer completed"
+SUCCESSFUL_TRANSFER = "File transfer completed"
 
 
 # Arguments
@@ -84,6 +84,21 @@ class Err(Packet):
     def getErrString(self):
         return self.errstring
 
+# exceptions
+
+class FileTransferError(Exception):
+    pass
+
+
+# methods
+
+def write_file(socket, packet, file):
+    while packet.getSize() and not error:
+        if packet.getOpcode() == DAT_OPCODE:
+            file.write(packet.getData())
+            packet = pickle.load(socket.recv(bufferSize))
+        else: # File doesn't exist on server
+            raise FileTransferError()
 
 
 
@@ -92,37 +107,52 @@ def main():
     
     print("starting...")
     
-    is_running = True
-    while is_running:
-        try:
+    # Client connection to server
+    TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
+    TCPClientSocket.connect((server_addr, server_port))
+    
+    # Server greeting message
+    packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+    if(packet.getOpcode() == DAT_OPCODE):
+        msg = packet.getData()
+        print(msg)
+        Ack_packet = Ack(FIRST_BLOCK_CODE)
+        encoded_packet = pickle.dumps(Ack_packet)
+        TCPClientSocket.send(encoded_packet)
 
+    running = True
+    while running:
+        try:
+            # starting animation
             print(".", end=' ',flush=True)
             time.sleep(1)
 
-            TCPClientSocket = socket(family=AF_INET, type=SOCK_STREAM)
-            TCPClientSocket.connect((server_addr, server_port))
-            
-            # Server greeting message
-            packet = pickle.loads(TCPClientSocket.recv(bufferSize))
-            if(packet.getOpcode() == DAT_OPCODE):
-                msg = packet.getData()
-                print(msg)
-                Ack_packet = Ack(FIRST_BLOCK_CODE)
-                encoded_packet = pickle.dumps(Ack_packet)
-                TCPClientSocket.send(encoded_packet)
-
             # arguments
             user_input = input().split(" ")
-            cmd = user_input[0]
+            cmd = user_input[0].upper()
 
             match cmd:
-                case "dir":
-                    pass
+                case "DIR":
+                    Rrq_packet = Rrq("")
+                    encoded_packet = pickle.dumps(Rrq_packet)
+                    TCPClientSocket.send(encoded_packet)
+                    
+                    end_file = False
+                    file = open("ref", "wb")
+                    while not end_file:
+                        packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+                        try:
+                            write_file(TCPClientSocket, packet, file)
+                        except:
+                            pass #exception to make
 
-                case "get":
+                    print(file.read())
+                # Should the file be written and rewritten to be ASCII in server or in client?? 
 
-                    remote_filename = cmd[1]
-                    local_filename = cmd[2]
+                case "GET":
+
+                    remote_filename = user_input[1]
+                    local_filename = user_input[2]
 
                     #CHECK: num of arguments
                     num_arguments = len(sys.argv) - 1
@@ -143,22 +173,21 @@ def main():
                         
                         # remaining packages DAT sent by server analysis
                         # writting local file
-                        with open(local_filename, "wb") as f:
-                            packet = pickle.loads(packet_bytes)
-                            error = False
-                            while packet.getSize() and not error:
-                                if packet.getOpcode() == DAT_OPCODE:
-                                    f.write(packet.getData())
-                                    packet = pickle.load(TCPClientSocket.recv(bufferSize))
-                                else: # File doesn't exist on server
-                                    os.remove(local_filename)
-                                    print(FILE_NOT_FOUND)
-                                    error = True
+                        with open(local_filename, "wb") as file:
+                            try: 
+                                write_file(TCPClientSocket, packet, file)
+                            except FileTransferError: # how are we meant to treat it???
+                                # The expected block number of a DAT or ACK packet is incorrect.
+                                # There is a protocol error (an unexpected packet type is received).
+                                os.remove(local_filename)
+                                print(FILE_NOT_FOUND)
+                                error = True
 
                     else: print(FILE_ALREADY_EXISTS)
 
-                case "end":
-                    pass #NOT DONE
+                case "END":
+                    print("Exiting!")
+                    running = False
 
                 case _:
                     print("Unknow command.")
@@ -166,7 +195,7 @@ def main():
         except KeyboardInterrupt:
             print("")
             print("Exiting!")
-            is_running = False
+            running = False
     print("Ending ")
 
 

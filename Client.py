@@ -184,9 +184,7 @@ def main():
                         print(INVALID_NUM_ARGS)
 
                     #CHECK: file already exists on client
-                    try: open(local_filename, "r")
-                    except FileNotFoundError:
-
+                    if not os.path.exists(local_filename):
                         # RRQ package dispatch
                         packet_rrq = pickle.dumps(Rrq(remote_filename))
                         TCPClientSocket.send(packet_rrq)

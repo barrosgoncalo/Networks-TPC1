@@ -100,8 +100,7 @@ def write_file(packet, file):
         file.write(packet.getData())
         file.flush()
     elif opCode == ERR_OPCODE:
-        print(packet.getE
-        rrString)
+        print(packet.getErrString)
     else: # File doesn't exist on server
         raise FileTransferError()
         

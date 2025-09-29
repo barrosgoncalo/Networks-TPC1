@@ -93,19 +93,20 @@ def handle_client(conn: socket.socket, addrClient):
             print(packet.getFileName())
 
             match packet.getFileName():
-                case None:
+                case "":
                     dir_path = "."
                     dir_list = os.listdir(dir_path)
                     dir_list.sort(key = lambda s: sum(map(ord, s)))
                     print(dir_list)
 
                     for file_name in dir_list:
-                        dat_packet = Dat(block_idx, bufferSize, file_name)
-                        req = pickle.dumps(dat_packet)
-                        conn.send(req)
-                        pickle.loads(conn.recv(bufferSize)) #Ackogledgment package
-                        block_idx += 1
-                            
+                        if os.path.isfile(os.path.join(dir_path, file_name)):
+                            dat_obj = Dat(block_idx, bufferSize, file_name)
+                            packet = pickle.dumps(dat_obj)
+                            conn.send(packet)
+                            #Ack package receival
+                            conn.recv(bufferSize)
+                            block_idx += 1
                     #Send "sentinel" package
                     conn.send(pickle.dumps(Dat(1, 0, "")))
 
@@ -122,7 +123,6 @@ def handle_client(conn: socket.socket, addrClient):
                             #ack block
                             conn.recv(bufferSize)
                             block_idx += 1
-                        print("sentinel package sent")
                         sentinel = Dat(block_idx, 0, "")
                         conn.send(pickle.dumps(sentinel))
         

@@ -30,7 +30,7 @@ local_addr = socket.gethostbyname(hostname)
 
 # classe principal
 class Packet:
-    def __init__(self, opcode):
+    def _init_(self, opcode):
         self.opcode = opcode
     # métodos
     def getOpcode(self):
@@ -38,16 +38,16 @@ class Packet:
 
 # extensões da classe Packet
 class Rrq(Packet):
-    def __init__(self, filename):
-        super().__init__(RQQ_OPCODE)
+    def _init_(self, filename):
+        super()._init_(RQQ_OPCODE)
         self.filename = filename
     # métodos
     def getFileName(self):
         return self.filename
 
 class Dat(Packet):
-    def __init__(self, block, size, data):
-        super().__init__(DAT_OPCODE)
+    def _init_(self, block, size, data):
+        super()._init_(DAT_OPCODE)
         self.block = block
         self.size = size
         self.data = data
@@ -60,19 +60,19 @@ class Dat(Packet):
         return self.data
 
 class Ack(Packet):
-    def __init__(self, block):
-        super().__init__(ACK_OPCODE)
+    def _init_(self, block):
+        super()._init_(ACK_OPCODE)
         self.block = block
     # métdos
     def getBlock(self):
         return self.block
 
 class Err(Packet):
-    def __init__(self, errstring):
-        super().__init__(ERR_OPCODE)
-        self.errstring = errstring
-    def getErrString(self):
-        return self.errstring
+    def _init_(self, errmessage):
+        super()._init_(ERR_OPCODE)
+        self.errmessage = errmessage
+    def getErrMessage(self):
+        return self.errmessage
     
 
 def resetBlock():
@@ -81,6 +81,11 @@ def resetBlock():
 def sendDat(conn: socket.socket, msg: str, block_idx: int):
     dat_obj = Dat(FIRST_BLOCK, bufferSize, msg)
     packet = pickle.dumps(dat_obj)
+    conn.send(packet)
+
+def sendErr(conn: socket.socket, msg: str):
+    err_obj = Err(msg)
+    packet = pickle.dumps(err_obj)
     conn.send(packet)
 
 def handle_client(conn: socket.socket, addrClient):
@@ -133,7 +138,7 @@ def handle_client(conn: socket.socket, addrClient):
                     
                     #check if the file exists ot not
                     if not os.path.exists(rqq_fileName):
-                        conn.close()
+                        sendErr(FileNotFoundError)
                         break
 
                     # open requested file to read
@@ -171,7 +176,6 @@ def main():
         conn, addrClient = TCPServerSocket.accept()
         tid = threading.Thread(target=handle_client, args=(conn, addrClient))
         tid.start()
-                
 
 
 

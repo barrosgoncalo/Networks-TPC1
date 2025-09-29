@@ -1,6 +1,0 @@
-ref.txt
-.DS_Store
-test.txt
-Client.py
-Server.py
-

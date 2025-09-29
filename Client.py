@@ -201,6 +201,10 @@ def main():
                                     os.remove(local_filename)
                                     print(FILE_NOT_FOUND)
                                     error = True
+                                
+                                except EOFError:
+                                    TCPClientSocket.close()
+                                    sys.exit()
 
                         print(SUCCESSFUL_TRANSFER)
 

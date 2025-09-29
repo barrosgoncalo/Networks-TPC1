@@ -78,15 +78,17 @@ class Err(Packet):
 def resetBlock():
     return 1
 
+def sendDat(conn: socket.socket, msg: str, block_idx: int):
+    dat_obj = Dat(FIRST_BLOCK, bufferSize, msg)
+    packet = pickle.dumps(dat_obj)
+    conn.send(packet)
+
 def handle_client(conn: socket.socket, addrClient):
 
     msg = GREETING.format(local_addr)
     
-    # create dat packet with the greeting message
-    dat_obj = Dat(FIRST_BLOCK, bufferSize, msg)
-    packet = pickle.dumps(dat_obj)
-    # send greeting message
-    conn.send(packet)
+    # create and send dat packet with the greeting message
+    sendDat(conn, msg, FIRST_BLOCK)
 
     #wait until for te ACK
     conn.recv(bufferSize)
@@ -115,9 +117,7 @@ def handle_client(conn: socket.socket, addrClient):
                         if os.path.isfile(os.path.join(dir_path, file_name)):
 
                             # Dat package with filename dispatch
-                            dat_obj = Dat(block_idx, bufferSize, file_name)
-                            packet = pickle.dumps(dat_obj)
-                            conn.send(packet)
+                            sendDat(conn, file_name, block_idx)
 
                             # Ack package receival
                             conn.recv(bufferSize)
@@ -130,17 +130,19 @@ def handle_client(conn: socket.socket, addrClient):
 
                 case _:
                     block_idx = resetBlock()
+                    
+                    #check if the file exists ot not
+                    if not os.path.exists(rqq_fileName):
+                        conn.close()
+                        break
 
                     # open requested file to read
                     with open(rqq_fileName, "r") as file:
                         # read and send file data
                         while data := file.read(bufferSize):
 
-                            # creating packages Dat with read data
-                            dat_obj = Dat(block_idx, bufferSize, data)
-                            packet = pickle.dumps(dat_obj)
-                            # send the packet to the client
-                            conn.send(packet)
+                            # creating and sending packages Dat with read data
+                            sendDat(conn, data, block_idx)
 
                             # Ack package receival
                             conn.recv(bufferSize)
@@ -150,6 +152,7 @@ def handle_client(conn: socket.socket, addrClient):
                         # Send "sentinel" package
                         sentinel = Dat(block_idx, EMPTY, "")
                         conn.send(pickle.dumps(sentinel))
+                    
         
 
 def main():

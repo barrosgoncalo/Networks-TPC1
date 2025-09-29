@@ -98,6 +98,7 @@ def write_file(packet, file):
     opCode = packet.getOpcode();
     if opCode == DAT_OPCODE:
         file.write(packet.getData())
+        file.flush()
     elif opCode == ERR_OPCODE:
         print("pass")
     else: # File doesn't exist on server
@@ -105,7 +106,7 @@ def write_file(packet, file):
         
         
 def resetBlock(block):
-    block = 0
+    block = 1
 
 
 # main
@@ -149,26 +150,24 @@ def main():
                     TCPClientSocket.send(encoded_packet)
                     
                     end_file = False
-                    file = open("ref.txt", "w")
+                    with open("ref.txt", "w") as file:
+                        while not end_file:
+                            packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+
+                            if (packet.getSize() == 0): end_file = True
+
+                            try:
+                                write_file(packet, file)
+                                file.write("\n")
+                                ack = Ack(block_idx)
+                                ack_packet = pickle.dumps(ack)
+                                TCPClientSocket.send(ack_packet)
+                                block_idx += 1
+                            except:
+                                pass #exception to make
                     
-                    while True:
-                        packet = pickle.loads(TCPClientSocket.recv(bufferSize))
-
-                        if (packet.getSize() == 0): break
-
-                        try:
-                            write_file(packet, file)
-                            file.write("\n")
-                            file.flush()
-                            ack = Ack(block_idx)
-                            ack_packet = pickle.dumps(ack)
-                            TCPClientSocket.send(ack_packet)
-                            block_idx += 1
-                        except:
-                            pass #exception to make
-                    file.close()
-                    with open("ref.txt", "r") as file:
-                        content = file.read()
+                    with open("ref.txt", "r") as f:  # "r" = read mode
+                        content = f.read()
                         print(content)
                 # Should the file be written and rewritten to be ASCII in server or in client?? 
 
@@ -185,30 +184,41 @@ def main():
                         print(INVALID_NUM_ARGS)
 
                     #CHECK: file already exists on client
-                    try:
-                        open(local_filename, "rb")
-
+                    try: open(local_filename, "r")
                     except FileNotFoundError:
-                        # request to server
+
+                        # RRQ package dispatch
                         packet_rrq = pickle.dumps(Rrq(remote_filename))
                         TCPClientSocket.send(packet_rrq)
-
-                        # data = first package DAT
-                        packet_bytes = TCPClientSocket.recv(bufferSize)
                         
                         # remaining packages DAT sent by server analysis
                         # writting local file
-                        with open(local_filename, "wb") as file:
-                            try: 
-                                write_file(TCPClientSocket, packet, file)
-                            except FileTransferError: # how are we meant to treat it???
-                                # The expected block number of a DAT or ACK packet is incorrect.
-                                # There is a protocol error (an unexpected packet type is received).
-                                os.remove(local_filename)
-                                print(FILE_NOT_FOUND)
-                                error = True
+                        with open(local_filename, "w") as file:
+                            while True:
+                                try:
+                                    enc_packet = TCPClientSocket.recv(bufferSize)
+                                    packet = pickle.loads(enc_packet)
+                                    print(packet.getData())
+                                    if packet.getSize() == 0: break
+                                    write_file(packet, file)
+
+                                except FileTransferError: # how are we meant to treat it???
+                                    # The expected block number of a DAT or ACK packet is incorrect.
+                                    # There is a protocol error (an unexpected packet type is received).
+                                    os.remove(local_filename)
+                                    print(FILE_NOT_FOUND)
+                                    error = True
+
+                                ackPacket = Ack(block_idx)
+                                packet = pickle.dumps(ackPacket)
+                                TCPClientSocket.send(packet)
+
+                        print(SUCCESSFUL_TRANSFER)
+
 
                     else: print(FILE_ALREADY_EXISTS)
+
+
 
                 case "END":
                     print("Exiting!")

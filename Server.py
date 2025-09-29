@@ -33,7 +33,7 @@ class Rrq(Packet):
         self.filename = filename
     # métodos
     def getFileName(self):
-        self.filename
+        return self.filename
 
 class Dat(Packet):
     def __init__(self, block, size, data):
@@ -63,43 +63,71 @@ class Err(Packet):
         self.errstring = errstring
     def getErrString(self):
         return self.errstring
-
+    
+def resetBlock(block):
+    block = 1
 
 def handle_client(conn: socket.socket, addrClient):
+
+    block_idx = 0
+
+    msg = f"Welcome to {addrServer} file server"
+    
+    #send the gretting msg
+    data_packet = Dat(1, bufferSize, msg)
+    req = pickle.dumps(data_packet)
+    conn.send(req)
+
+    #wait until for te ACK
+    conn.recv(bufferSize)
+
     while True:
-        msg = f"Welcome to {addrServer} file server"
-
-        #send the gretting msg
-        data_packet = Dat(1, bufferSize, msg)
-        req = pickle.dumps(data_packet)
-        conn.send(req)
-
-        #wait until for te ACK
-        conn.recvfrom(bufferSize)
 
         enc_data = conn.recv(bufferSize)
         packet = pickle.loads(enc_data)
         end_file = False
 
         if(packet.getOpcode() == RQQ_OPCODE):
-            idx = 1
+            resetBlock(block_idx)
+
+            print(packet.getFileName())
+
             match packet.getFileName():
                 case None:
                     dir_path = "."
                     dir_list = os.listdir(dir_path)
+                    dir_list.sort(key = lambda s: sum(map(ord, s)))
                     print(dir_list)
 
                     for file_name in dir_list:
-                        idx += 1
-                        data_packet = Dat(idx, bufferSize, file_name)
+                        data_packet = Dat(block_idx, bufferSize, file_name)
                         req = pickle.dumps(data_packet)
                         conn.send(req)
-                        #ack block
-                        pickle.loads(conn.recv(bufferSize))
+                        pickle.loads(conn.recv(bufferSize)) #Ackogledgment package
+                        block_idx += 1
+                            
                     #Send "sentinel" package
                     conn.send(pickle.dumps(Dat(1, 0, "")))
 
-                case _: pass
+                case _:
+                    resetBlock(block_idx)
+                    with open(packet.getFileName(), "r") as file:
+                        while True:
+                            data = file.read(bufferSize)
+                            if not data: break
+
+                            data_packet = Dat(block_idx, bufferSize, data)
+
+                            req = pickle.dumps(data_packet)
+                            conn.send(req)
+
+                            #ack block
+                            packet = conn.recv(bufferSize)
+                            pickle.loads(conn.recv(bufferSize))
+                            block_idx += 1
+                        print("sentinel package sent")
+                        sentinel = Dat(block_idx, 0, "")
+                        conn.send(pickle.dumps(sentinel))
         
 
 def main():

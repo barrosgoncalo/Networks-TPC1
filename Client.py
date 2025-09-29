@@ -170,6 +170,9 @@ def main():
                             pass #exception to make
 
                 case "GET":
+                    # get status
+                    is_successful = False
+
                     #block index reset
                     resetBlock(block_idx)
 
@@ -196,7 +199,9 @@ def main():
                                     packet = pickle.loads(enc_packet)
 
                                     verify_packet(packet)
-                                    if packet.getSize() == 0: break
+                                    if packet.getSize() == 0:
+                                        is_successful = True
+                                        break
                                     
                                     write_file(packet, file)
 
@@ -213,8 +218,7 @@ def main():
                                     # There is a protocol error (an unexpected packet type is received).
                                     TCPClientSocket.close()
                                     sys.exit()
-
-                                print(SUCCESSFUL_TRANSFER)
+                        if is_successful: print(SUCCESSFUL_TRANSFER)
 
 
                     else: print(FILE_ALREADY_EXISTS)

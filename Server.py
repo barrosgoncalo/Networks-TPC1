@@ -96,6 +96,9 @@ def sendErr(conn: socket.socket, msg: str):
     packet = pickle.dumps(err_obj)
     conn.send(packet)
 
+def is_ack(packet):
+    return packet.getOpcode() == ACK_OPCODE
+
 def handle_client(conn: socket.socket, addrClient):
 
     msg = GREETING.format(local_addr)
@@ -136,8 +139,12 @@ def handle_client(conn: socket.socket, addrClient):
                             # Dat package with filename dispatch
                             sendDat(conn, file_name, block_idx)
 
-                            # Ack package receival
-                            conn.recv(bufferSize)
+                            # Ack package receival control
+                            enc_ack = conn.recv(bufferSize)
+                            packet = pickle.loads(enc_ack)
+                            if not is_ack(packet):
+                                conn.close()
+                                break
 
                             block_idx += 1
 
@@ -161,8 +168,12 @@ def handle_client(conn: socket.socket, addrClient):
                             # creating and sending packages Dat with read data
                             sendDat(conn, data, block_idx)
 
-                            # Ack package receival
-                            conn.recv(bufferSize)
+                            # Ack package receival control
+                            enc_ack = conn.recv(bufferSize)
+                            packet = pickle.loads(enc_ack)
+                            if not is_ack(packet):
+                                conn.close()
+                                break
 
                             block_idx += 1 # block index updated to next block
                             

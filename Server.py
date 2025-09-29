@@ -4,6 +4,10 @@ import pickle
 import os
 import sys
 
+# messages
+
+GREETING_MSG = "Welcome to {} file server"
+
 
 # opcodes
 RQQ_OPCODE = 1
@@ -11,6 +15,10 @@ DAT_OPCODE = 3
 ACK_OPCODE = 4
 ERR_OPCODE = 5
 bufferSize = 512
+
+# local address
+hostname = socket.gethostname()
+local_addr = socket.gethostbyname(hostname)
 
 
 #Packages
@@ -68,7 +76,7 @@ def handle_client(conn: socket.socket, addrClient):
 
     block_idx = 0
 
-    msg = f"Welcome to {addrServer} file server"
+    msg = GREETING_MSG.format(local_addr)
     
     #send the gretting msg
     dat_packet = Dat(1, bufferSize, msg)
@@ -128,16 +136,16 @@ def main():
 
     serverPort = int(sys.argv[1])
     try:    
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(("", serverPort))
+        TCPServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        TCPServerSocket.bind(("", serverPort))
         print("Server is running")
 
     except:
         print("Unable to start server")
 
     while(True):
-        server.listen()
-        conn, addrClient = server.accept()
+        TCPServerSocket.listen()
+        conn, addrClient = TCPServerSocket.accept()
         tid = threading.Thread(target=handle_client, args=(conn, addrClient))
         tid.start()
                 

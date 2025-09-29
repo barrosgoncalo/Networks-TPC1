@@ -74,8 +74,8 @@ def handle_client(conn: socket.socket, addrClient):
     msg = f"Welcome to {addrServer} file server"
     
     #send the gretting msg
-    data_packet = Dat(1, bufferSize, msg)
-    req = pickle.dumps(data_packet)
+    dat_packet = Dat(1, bufferSize, msg)
+    req = pickle.dumps(dat_packet)
     conn.send(req)
 
     #wait until for te ACK
@@ -100,8 +100,8 @@ def handle_client(conn: socket.socket, addrClient):
                     print(dir_list)
 
                     for file_name in dir_list:
-                        data_packet = Dat(block_idx, bufferSize, file_name)
-                        req = pickle.dumps(data_packet)
+                        dat_packet = Dat(block_idx, bufferSize, file_name)
+                        req = pickle.dumps(dat_packet)
                         conn.send(req)
                         pickle.loads(conn.recv(bufferSize)) #Ackogledgment package
                         block_idx += 1
@@ -112,18 +112,15 @@ def handle_client(conn: socket.socket, addrClient):
                 case _:
                     resetBlock(block_idx)
                     with open(packet.getFileName(), "r") as file:
-                        while True:
-                            data = file.read(bufferSize)
-                            if not data: break
+                        while data := file.read(bufferSize):
 
-                            data_packet = Dat(block_idx, bufferSize, data)
+                            dat_packet = Dat(block_idx, bufferSize, data)
 
-                            req = pickle.dumps(data_packet)
+                            req = pickle.dumps(dat_packet)
                             conn.send(req)
 
                             #ack block
-                            packet = conn.recv(bufferSize)
-                            pickle.loads(conn.recv(bufferSize))
+                            conn.recv(bufferSize)
                             block_idx += 1
                         print("sentinel package sent")
                         sentinel = Dat(block_idx, 0, "")

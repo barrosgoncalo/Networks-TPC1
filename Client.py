@@ -23,7 +23,7 @@ SUCCESSFUL_TRANSFER = "File transfer completed"
 # Arguments
 server_addr = "172.17.0.2"
 server_port = 20000
-bufferSize = 512
+bufferSize = 1024
 
 
 # opcodes
@@ -196,9 +196,13 @@ def main():
                                 try:
                                     enc_packet = TCPClientSocket.recv(bufferSize)
                                     packet = pickle.loads(enc_packet)
-                                    print(packet.getData())
+
                                     if packet.getSize() == 0: break
                                     write_file(packet, file)
+
+                                    ackPacket = Ack(block_idx)
+                                    packet = pickle.dumps(ackPacket)
+                                    TCPClientSocket.send(packet)
 
                                 except FileTransferError: # how are we meant to treat it???
                                     # The expected block number of a DAT or ACK packet is incorrect.
@@ -206,10 +210,6 @@ def main():
                                     os.remove(local_filename)
                                     print(FILE_NOT_FOUND)
                                     error = True
-
-                                ackPacket = Ack(block_idx)
-                                packet = pickle.dumps(ackPacket)
-                                TCPClientSocket.send(packet)
 
                         print(SUCCESSFUL_TRANSFER)
 

@@ -37,7 +37,7 @@ ERR_OPCODE = 5
 
 # classe principal
 class Packet:
-    def __init__(self, opcode):
+    def _init_(self, opcode):
         self.opcode = opcode
     # métodos
     def getOpcode(self):
@@ -47,16 +47,16 @@ class Packet:
 # extensões da classe Packet
 
 class Rrq(Packet):
-    def __init__(self, filename):
-        super().__init__(RQQ_OPCODE)
+    def _init_(self, filename):
+        super()._init_(RQQ_OPCODE)
         self.filename = filename
     # métodos
     def getFileName(self):
         return self.filename
 
 class Dat(Packet):
-    def __init__(self, block, size, data):
-        super().__init__(DAT_OPCODE)
+    def _init_(self, block, size, data):
+        super()._init_(DAT_OPCODE)
         self.block = block
         self.size = size
         self.data = data
@@ -69,16 +69,16 @@ class Dat(Packet):
         return self.data
 
 class Ack(Packet):
-    def __init__(self, block):
-        super().__init__(ACK_OPCODE)
+    def _init_(self, block):
+        super()._init_(ACK_OPCODE)
         self.block = block
     # métdos
     def getBlock(self):
         return self.block
 
 class Err(Packet):
-    def __init__(self, errstring):
-        super().__init__(ERR_OPCODE)
+    def _init_(self, errstring):
+        super()._init_(ERR_OPCODE)
         self.errstring = errstring
     # métodos
     def getErrMsg(self):
@@ -224,7 +224,7 @@ def main():
             print("")
             print("Exiting!")
             running = False
-    print("Ending ")
+    print("Ending ")
 
 
 main()

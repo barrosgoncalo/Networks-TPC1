@@ -204,14 +204,19 @@ def main():
         TCPServerSocket.bind(("", serverPort))
         print("Server is running")
 
+        while(True):
+            TCPServerSocket.listen()
+            conn, addrClient = TCPServerSocket.accept()
+            tid = threading.Thread(target=handle_client, args=(conn, addrClient))
+            tid.start()
+
+    except KeyboardInterrupt:
+            print("")
+            print("Exiting!")
+            TCPServerSocket.close()
+            sys.exit(0)
     except:
         print("Unable to start server")
-
-    while(True):
-        TCPServerSocket.listen()
-        conn, addrClient = TCPServerSocket.accept()
-        tid = threading.Thread(target=handle_client, args=(conn, addrClient))
-        tid.start()
 
 
 

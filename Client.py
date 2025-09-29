@@ -18,11 +18,13 @@ FILE_NOT_FOUND = "File not found"
 
 # prints
 SUCCESSFUL_TRANSFER = "File transfer completed"
+UNKNOWN_COMM = "Unknow command"
+CLOSE_TCP = "Connection close, client ended"
 
 
 # Arguments
-server_addr = "172.17.0.2"
-server_port = 20001
+server_addr = sys.argv[1]
+server_port = int(sys.argv[2])
 bufferSize = 1024
 
 
@@ -94,6 +96,9 @@ class FileNotFound(Exception):
 
 # methods
 
+def resetBlock():
+    return 1
+
 def write_file(packet, file):
     file.write(packet.getData())
     file.flush()
@@ -113,10 +118,6 @@ def local_file_exists(file_name):
     
 def is_right_block(packet, prev_block_idx):
     return packet.getBlock() == prev_block_idx + 1
-
-        
-def resetBlock(block):
-    block = 1
 
 
 # main
@@ -148,12 +149,10 @@ def main():
             user_input = input().split(" ")
             cmd = user_input[0].upper()
 
-            block_idx = 1
+            block_idx = resetBlock()
 
             match cmd:
                 case "DIR":
-                    #block index reset
-                    resetBlock(block_idx)
                     prev_block_idx = 0
 
                     Rrq_packet = Rrq("")
@@ -178,16 +177,16 @@ def main():
                         ack_packet = pickle.dumps(ack_obj)
                         TCPClientSocket.send(ack_packet)
                         block_idx += 1
-                        
+                    
+                    for file_name in fileNamesArr:
+                        print(file_name)
+
 
                 case "GET":
                     # get status
                     is_successful = False
 
                     prev_block_idx = 0
-
-                    #block index reset
-                    resetBlock(block_idx)
 
                     remote_filename = user_input[1]
                     local_filename = user_input[2]
@@ -211,13 +210,14 @@ def main():
                                     enc_packet = TCPClientSocket.recv(bufferSize)
                                     packet = pickle.loads(enc_packet)
 
+                                    verify_packet(packet)
+
                                     if(packet.getBlock() != prev_block_idx + 1):
                                         running = False
                                         TCPClientSocket.close()
                                     
                                     prev_block_idx = packet.getBlock()
 
-                                    verify_packet(packet)
                                     if packet.getSize() == 0:
                                         is_successful = True
                                         break
@@ -234,9 +234,7 @@ def main():
                                         print(packet.getErrMsg())
                                         os.remove(local_filename)
                                         break
-                                except FileTransferError: # how are we meant to treat it???
-                                    # The expected block number of a DAT or ACK packet is incorrect.
-                                    # There is a protocol error (an unexpected packet type is received).
+                                except FileTransferError:
                                     TCPClientSocket.close()
                                     sys.exit()
                         if is_successful: print(SUCCESSFUL_TRANSFER)
@@ -249,15 +247,14 @@ def main():
                 case "END":
                     running = False
                     TCPClientSocket.close()
-                    print("Connection close, client ended")
+                    print(CLOSE_TCP)
 
                 case _:
-                    print("Unknow command.")
+                    print(UNKNOWN_COMM)
 
         except KeyboardInterrupt:
             print("")
             print("Exiting!")
             running = False
-
 
 main()

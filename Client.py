@@ -149,27 +149,18 @@ def main():
                     encoded_packet = pickle.dumps(Rrq_packet)
                     TCPClientSocket.send(encoded_packet)
                     
-                    end_file = False
-                    with open("ref.txt", "w") as file:
-                        while not end_file:
-                            packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+                    while True:
+                        packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+                        if (packet.getSize() == 0): break
 
-                            if (packet.getSize() == 0): end_file = True
-
-                            try:
-                                write_file(packet, file)
-                                file.write("\n")
-                                ack = Ack(block_idx)
-                                ack_packet = pickle.dumps(ack)
-                                TCPClientSocket.send(ack_packet)
-                                block_idx += 1
-                            except:
-                                pass #exception to make
-                    
-                    with open("ref.txt", "r") as f:  # "r" = read mode
-                        content = f.read()
-                        print(content)
-                # Should the file be written and rewritten to be ASCII in server or in client?? 
+                        try:
+                            print(packet.getData())
+                            ack_obj = Ack(block_idx)
+                            ack_packet = pickle.dumps(ack_obj)
+                            TCPClientSocket.send(ack_packet)
+                            block_idx += 1
+                        except:
+                            pass #exception to make
 
                 case "GET":
                     #block index reset

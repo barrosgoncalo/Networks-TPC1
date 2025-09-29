@@ -131,6 +131,7 @@ def handle_client(conn: socket.socket, addrClient):
             match rqq_fileName:
                 case "":
                     block_idx = resetBlock()
+                    prev_block_idx = 0
 
                     dir_path = "."
                     dir_list = os.listdir(dir_path)
@@ -180,8 +181,6 @@ def handle_client(conn: socket.socket, addrClient):
                             enc_ack = conn.recv(bufferSize)
                             packet = pickle.loads(enc_ack)
 
-                            print("PREV -> ", prev_block_idx)
-                            print("ACT ->", packet.getBlock())
                             if not is_right_block(packet, prev_block_idx): conn.close()
                             prev_block_idx = packet.getBlock()
 

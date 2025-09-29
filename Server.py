@@ -6,14 +6,19 @@ import sys
 
 # messages
 
-GREETING_MSG = "Welcome to {} file server"
-
+GREETING = "Welcome to {} file server"
 
 # opcodes
 RQQ_OPCODE = 1
 DAT_OPCODE = 3
 ACK_OPCODE = 4
 ERR_OPCODE = 5
+
+# block#
+FIRST_BLOCK = 1
+EMPTY = 0
+
+# buffer size
 bufferSize = 512
 
 # local address
@@ -69,66 +74,81 @@ class Err(Packet):
     def getErrString(self):
         return self.errstring
     
-def resetBlock(block):
-    block = 1
+
+def resetBlock():
+    return 1
 
 def handle_client(conn: socket.socket, addrClient):
 
-    block_idx = 0
-
-    msg = GREETING_MSG.format(local_addr)
+    msg = GREETING.format(local_addr)
     
-    #send the gretting msg
-    dat_packet = Dat(1, bufferSize, msg)
-    req = pickle.dumps(dat_packet)
-    conn.send(req)
+    # create dat packet with the greeting message
+    dat_obj = Dat(FIRST_BLOCK, bufferSize, msg)
+    packet = pickle.dumps(dat_obj)
+    # send greeting message
+    conn.send(packet)
 
     #wait until for te ACK
     conn.recv(bufferSize)
 
     while True:
 
-        enc_data = conn.recv(bufferSize)
-        packet = pickle.loads(enc_data)
-        end_file = False
+        block_idx = resetBlock()
+
+        enc_rqq = conn.recv(bufferSize)
+        packet = pickle.loads(enc_rqq)
 
         if(packet.getOpcode() == RQQ_OPCODE):
-            resetBlock(block_idx)
 
-            print(packet.getFileName())
-
-            match packet.getFileName():
+            block_idx = 0 # block index intancianted
+            rqq_fileName = packet.getFileName()
+            
+            match rqq_fileName:
                 case "":
+                    block_idx = resetBlock()
+
                     dir_path = "."
                     dir_list = os.listdir(dir_path)
                     dir_list.sort(key = lambda s: sum(map(ord, s)))
-                    print(dir_list)
 
                     for file_name in dir_list:
                         if os.path.isfile(os.path.join(dir_path, file_name)):
+
+                            # Dat package with filename dispatch
                             dat_obj = Dat(block_idx, bufferSize, file_name)
                             packet = pickle.dumps(dat_obj)
                             conn.send(packet)
-                            #Ack package receival
+
+                            # Ack package receival
                             conn.recv(bufferSize)
+
                             block_idx += 1
-                    #Send "sentinel" package
-                    conn.send(pickle.dumps(Dat(1, 0, "")))
+
+                    # Send "sentinel" package
+                    sentinel = Dat(block_idx, EMPTY, "")
+                    conn.send(pickle.dumps(sentinel))
 
                 case _:
-                    resetBlock(block_idx)
-                    with open(packet.getFileName(), "r") as file:
+                    block_idx = resetBlock()
+
+                    # open requested file to read
+                    with open(rqq_fileName, "r") as file:
+                        # read and send file data
                         while data := file.read(bufferSize):
 
-                            dat_packet = Dat(block_idx, bufferSize, data)
+                            # creating packages Dat with read data
+                            dat_obj = Dat(block_idx, bufferSize, data)
+                            packet = pickle.dumps(dat_obj)
+                            # send the packet to the client
+                            conn.send(packet)
 
-                            req = pickle.dumps(dat_packet)
-                            conn.send(req)
-
-                            #ack block
+                            # Ack package receival
                             conn.recv(bufferSize)
-                            block_idx += 1
-                        sentinel = Dat(block_idx, 0, "")
+
+                            block_idx += 1 # block index updated to next block
+                            
+                        # Send "sentinel" package
+                        sentinel = Dat(block_idx, EMPTY, "")
                         conn.send(pickle.dumps(sentinel))
         
 

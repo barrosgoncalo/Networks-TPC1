@@ -7,6 +7,11 @@ import sys
 # messages
 
 GREETING = "Welcome to {} file server"
+CLIENT_DISCONNECTED = "Client {} disconnected"
+
+# errors
+
+FILE_NOT_FOUND = "File not found"
 
 # opcodes
 RQQ_OPCODE = 1
@@ -30,24 +35,26 @@ local_addr = socket.gethostbyname(hostname)
 
 # classe principal
 class Packet:
-    def _init_(self, opcode):
+    def __init__(self, opcode):
         self.opcode = opcode
     # métodos
     def getOpcode(self):
         return self.opcode
 
+
 # extensões da classe Packet
+
 class Rrq(Packet):
-    def _init_(self, filename):
-        super()._init_(RQQ_OPCODE)
+    def __init__(self, filename):
+        super().__init__(RQQ_OPCODE)
         self.filename = filename
     # métodos
     def getFileName(self):
         return self.filename
 
 class Dat(Packet):
-    def _init_(self, block, size, data):
-        super()._init_(DAT_OPCODE)
+    def __init__(self, block, size, data):
+        super().__init__(DAT_OPCODE)
         self.block = block
         self.size = size
         self.data = data
@@ -60,19 +67,20 @@ class Dat(Packet):
         return self.data
 
 class Ack(Packet):
-    def _init_(self, block):
-        super()._init_(ACK_OPCODE)
+    def __init__(self, block):
+        super().__init__(ACK_OPCODE)
         self.block = block
     # métdos
     def getBlock(self):
         return self.block
 
 class Err(Packet):
-    def _init_(self, errmessage):
-        super()._init_(ERR_OPCODE)
-        self.errmessage = errmessage
-    def getErrMessage(self):
-        return self.errmessage
+    def __init__(self, errstring):
+        super().__init__(ERR_OPCODE)
+        self.errstring = errstring
+    # métodos
+    def getErrMsg(self):
+        return self.errstring
     
 
 def resetBlock():
@@ -103,6 +111,10 @@ def handle_client(conn: socket.socket, addrClient):
         block_idx = resetBlock()
 
         enc_rqq = conn.recv(bufferSize)
+        if not enc_rqq:
+            print(CLIENT_DISCONNECTED.format(addrClient))
+            conn.close()
+            return
         packet = pickle.loads(enc_rqq)
 
         if(packet.getOpcode() == RQQ_OPCODE):
@@ -138,7 +150,7 @@ def handle_client(conn: socket.socket, addrClient):
                     
                     #check if the file exists ot not
                     if not os.path.exists(rqq_fileName):
-                        sendErr(FileNotFoundError)
+                        sendErr(conn ,FILE_NOT_FOUND)
                         break
 
                     # open requested file to read

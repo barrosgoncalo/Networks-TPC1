@@ -37,7 +37,7 @@ ERR_OPCODE = 5
 
 # classe principal
 class Packet:
-    def _init_(self, opcode):
+    def __init__(self, opcode):
         self.opcode = opcode
     # métodos
     def getOpcode(self):
@@ -47,16 +47,16 @@ class Packet:
 # extensões da classe Packet
 
 class Rrq(Packet):
-    def _init_(self, filename):
-        super()._init_(RQQ_OPCODE)
+    def __init__(self, filename):
+        super().__init__(RQQ_OPCODE)
         self.filename = filename
     # métodos
     def getFileName(self):
         return self.filename
 
 class Dat(Packet):
-    def _init_(self, block, size, data):
-        super()._init_(DAT_OPCODE)
+    def __init__(self, block, size, data):
+        super().__init__(DAT_OPCODE)
         self.block = block
         self.size = size
         self.data = data
@@ -69,16 +69,16 @@ class Dat(Packet):
         return self.data
 
 class Ack(Packet):
-    def _init_(self, block):
-        super()._init_(ACK_OPCODE)
+    def __init__(self, block):
+        super().__init__(ACK_OPCODE)
         self.block = block
     # métdos
     def getBlock(self):
         return self.block
 
 class Err(Packet):
-    def _init_(self, errstring):
-        super()._init_(ERR_OPCODE)
+    def __init__(self, errstring):
+        super().__init__(ERR_OPCODE)
         self.errstring = errstring
     # métodos
     def getErrMsg(self):
@@ -95,15 +95,22 @@ class FileNotFound(Exception):
 # methods
 
 def write_file(packet, file):
-    opCode = packet.getOpcode();
-    if opCode == DAT_OPCODE:
-        file.write(packet.getData())
-        file.flush()
-    elif opCode == ERR_OPCODE:
-        print(packet.getErrString)
-    else: # File doesn't exist on server
-        raise FileTransferError()
+    file.write(packet.getData())
+    file.flush()
         
+def verify_packet(packet):
+    opcode = packet.getOpcode()
+    if opcode != DAT_OPCODE:
+        if opcode == ERR_OPCODE:
+            raise FileNotFound()
+        else:
+            raise FileTransferError()
+        
+def local_file_exists(file_name):
+    try: open(file_name, "r")
+    except:
+        raise FileExistsError()
+
         
 def resetBlock(block):
     block = 1
@@ -188,25 +195,26 @@ def main():
                                     enc_packet = TCPClientSocket.recv(bufferSize)
                                     packet = pickle.loads(enc_packet)
 
+                                    verify_packet(packet)
                                     if packet.getSize() == 0: break
+                                    
                                     write_file(packet, file)
 
                                     ackPacket = Ack(block_idx)
                                     packet = pickle.dumps(ackPacket)
                                     TCPClientSocket.send(packet)
 
+                                except FileNotFound:
+                                        print(packet.getErrMsg())
+                                        os.remove(local_filename)
+                                        break
                                 except FileTransferError: # how are we meant to treat it???
                                     # The expected block number of a DAT or ACK packet is incorrect.
                                     # There is a protocol error (an unexpected packet type is received).
-                                    os.remove(local_filename)
-                                    print(FILE_NOT_FOUND)
-                                    error = True
-                                
-                                except EOFError:
                                     TCPClientSocket.close()
                                     sys.exit()
 
-                        print(SUCCESSFUL_TRANSFER)
+                                print(SUCCESSFUL_TRANSFER)
 
 
                     else: print(FILE_ALREADY_EXISTS)
@@ -214,8 +222,9 @@ def main():
 
 
                 case "END":
-                    print("Exiting!")
                     running = False
+                    TCPClientSocket.close()
+                    print("Connection close, client ended")
 
                 case _:
                     print("Unknow command.")
@@ -224,7 +233,6 @@ def main():
             print("")
             print("Exiting!")
             running = False
-    print("Ending ")
 
 
 main()

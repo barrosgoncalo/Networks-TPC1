@@ -110,6 +110,9 @@ def local_file_exists(file_name):
     try: open(file_name, "r")
     except:
         raise FileExistsError()
+    
+def is_right_block(packet, prev_block_idx):
+    return packet.getBlock() == prev_block_idx + 1
 
         
 def resetBlock(block):
@@ -151,20 +154,31 @@ def main():
                 case "DIR":
                     #block index reset
                     resetBlock(block_idx)
+                    prev_block_idx = 0
 
                     Rrq_packet = Rrq("")
                     encoded_packet = pickle.dumps(Rrq_packet)
                     TCPClientSocket.send(encoded_packet)
+
+                    fileNamesArr = []
                     
                     while True:
                         packet = pickle.loads(TCPClientSocket.recv(bufferSize))
+
+                        if not is_right_block(packet, prev_block_idx):
+                            running = False
+                            TCPClientSocket.close()
+                        prev_block_idx = packet.getBlock()
+
                         if (packet.getSize() == 0): break
 
-                        print(packet.getData())
+                        fileNamesArr.append(packet.getData())
+
                         ack_obj = Ack(block_idx)
                         ack_packet = pickle.dumps(ack_obj)
                         TCPClientSocket.send(ack_packet)
                         block_idx += 1
+                        
 
                 case "GET":
                     # get status

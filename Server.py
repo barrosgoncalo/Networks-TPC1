@@ -87,7 +87,7 @@ def resetBlock():
     return 1
 
 def sendDat(conn: socket.socket, msg: str, block_idx: int):
-    dat_obj = Dat(FIRST_BLOCK, bufferSize, msg)
+    dat_obj = Dat(block_idx, bufferSize, msg)
     packet = pickle.dumps(dat_obj)
     conn.send(packet)
 
@@ -98,6 +98,9 @@ def sendErr(conn: socket.socket, msg: str):
 
 def is_ack(packet):
     return packet.getOpcode() == ACK_OPCODE
+
+def is_right_block(packet, prev_block_idx):
+    return packet.getBlock() == prev_block_idx + 1
 
 def handle_client(conn: socket.socket, addrClient):
 
@@ -142,6 +145,10 @@ def handle_client(conn: socket.socket, addrClient):
                             # Ack package receival control
                             enc_ack = conn.recv(bufferSize)
                             packet = pickle.loads(enc_ack)
+
+                            if not is_right_block(packet, prev_block_idx): conn.close()
+                            prev_block_idx = packet.getBlock()
+
                             if not is_ack(packet):
                                 conn.close()
                                 break
@@ -154,6 +161,7 @@ def handle_client(conn: socket.socket, addrClient):
 
                 case _:
                     block_idx = resetBlock()
+                    prev_block_idx = 0
                     
                     #check if the file exists ot not
                     if not os.path.exists(rqq_fileName):
@@ -171,6 +179,12 @@ def handle_client(conn: socket.socket, addrClient):
                             # Ack package receival control
                             enc_ack = conn.recv(bufferSize)
                             packet = pickle.loads(enc_ack)
+
+                            print("PREV -> ", prev_block_idx)
+                            print("ACT ->", packet.getBlock())
+                            if not is_right_block(packet, prev_block_idx): conn.close()
+                            prev_block_idx = packet.getBlock()
+
                             if not is_ack(packet):
                                 conn.close()
                                 break

@@ -160,18 +160,17 @@ def main():
                         packet = pickle.loads(TCPClientSocket.recv(bufferSize))
                         if (packet.getSize() == 0): break
 
-                        try:
-                            print(packet.getData())
-                            ack_obj = Ack(block_idx)
-                            ack_packet = pickle.dumps(ack_obj)
-                            TCPClientSocket.send(ack_packet)
-                            block_idx += 1
-                        except:
-                            pass #exception to make
+                        print(packet.getData())
+                        ack_obj = Ack(block_idx)
+                        ack_packet = pickle.dumps(ack_obj)
+                        TCPClientSocket.send(ack_packet)
+                        block_idx += 1
 
                 case "GET":
                     # get status
                     is_successful = False
+
+                    prev_block_idx = 0
 
                     #block index reset
                     resetBlock(block_idx)
@@ -198,6 +197,12 @@ def main():
                                     enc_packet = TCPClientSocket.recv(bufferSize)
                                     packet = pickle.loads(enc_packet)
 
+                                    if(packet.getBlock() != prev_block_idx + 1):
+                                        running = False
+                                        TCPClientSocket.close()
+                                    
+                                    prev_block_idx = packet.getBlock()
+
                                     verify_packet(packet)
                                     if packet.getSize() == 0:
                                         is_successful = True
@@ -208,6 +213,8 @@ def main():
                                     ackPacket = Ack(block_idx)
                                     packet = pickle.dumps(ackPacket)
                                     TCPClientSocket.send(packet)
+
+                                    block_idx += 1
 
                                 except FileNotFound:
                                         print(packet.getErrMsg())

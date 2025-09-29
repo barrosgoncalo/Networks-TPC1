@@ -22,7 +22,7 @@ SUCCESSFUL_TRANSFER = "File transfer completed"
 
 # Arguments
 server_addr = "172.17.0.2"
-server_port = 20000
+server_port = 20001
 bufferSize = 1024
 
 

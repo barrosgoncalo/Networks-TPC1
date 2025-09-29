@@ -10,9 +10,6 @@ RQQ_OPCODE = 1
 DAT_OPCODE = 3
 ACK_OPCODE = 4
 ERR_OPCODE = 5
-
-port = 20000
-addrServer = "172.17.0.2"
 bufferSize = 512
 
 
@@ -129,9 +126,10 @@ def handle_client(conn: socket.socket, addrClient):
 
 def main():
 
+    serverPort = int(sys.argv[1])
     try:    
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind((addrServer, port))
+        server.bind(("", serverPort))
         print("Server is running")
 
     except:
